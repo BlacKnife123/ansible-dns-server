@@ -1,0 +1,11 @@
+$TTL 2d
+@     IN SOA   localhost.localdomain. root.localhost.localdomain. (
+                         2022092400      ; serial
+                         3h              ; refresh
+                         1h              ; retry
+                         1w              ; expiry
+                         1d )            ; minimum
+30.20.10.in-addr.arpa.  IN NS  example.local.
+;
+1.30.20.10.in-addr.arpa. IN PTR      example.local.
+100.30.20.10.in-addr.arpa IN PTR host1.example.local

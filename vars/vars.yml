@@ -1,0 +1,46 @@
+interfaces:
+  - eth0
+  - eth1
+zone:
+  - internal
+  - external
+type: ethernet
+ipv4: 10.20.30.1/24
+subnet: 10.20.30.
+reverse_subnet: 30.20.10.
+netplan:
+  - /etc/netplan/00-installer-config.yaml
+services:
+  - bind
+  - named
+  - bind-utils
+  - bind9
+  - bind9utils
+  - 'bind9-doc'
+netmask: 255.255.255.0
+dns_paths:
+  - /etc/named.d/forwarders.conf
+  - /etc/named.conf
+  - /etc/bind/named.conf.local
+  - /etc/bind/named.conf.options
+zone_paths:
+  - /var/lib/named/example.local
+  - /var/lib/named/30.20.10.in-addr.arpa
+  - /var/named/example.local
+  - /var/named/30.20.10.in-addr.arpa
+  - /etc/bind/example.local
+  - /etc/bind/30.20.10.in-addr.arpa
+zone_name:
+  - example.local
+  - 30.20.10.in-addr.arpa
+fierwall_path:
+  - /etc/firewalld/zones/public.xml
+template:
+  - templates/ubuntu_netplan.j2
+  - templates/forwarders.j2
+  - templates/dns_RedHat_Family.j2
+  - templates/dns_OpenSuse.j2
+  - templates/dns_Debian_Family.j2
+  - templates/forwarders_Debian_Family.j2
+  - templates/zone.j2
+  - templates/ptr.j2

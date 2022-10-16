@@ -1,0 +1,45 @@
+options {
+        stale-answer-enable no;
+        directory "/var/lib/named";        
+        managed-keys-directory "/var/lib/named/dyn/";
+        dump-file "/var/log/named/dump.db";
+        statistics-file "/var/log/named/stats";        
+        listen-on { any; };
+        listen-on-v6 { any; };
+        notify no;
+
+    disable-empty-zone "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.IP6.ARPA";
+geoip-directory none;
+        include "/etc/named.d/forwarders.conf";
+};
+
+zone "." in {
+        type hint;
+        file "root.hint";
+};
+
+zone "localhost" in {
+        type master;
+        file "localhost.zone";
+};
+
+zone "0.0.127.in-addr.arpa" in {
+        type master;
+        file "127.0.0.zone";
+};
+
+zone "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa" IN {
+    type master;
+    file "127.0.0.zone";
+};
+
+zone "example.local" in {
+             type master;
+             file "example.local";
+             allow-transfer { any; };
+          };
+zone "30.20.10.in-addr.arpa" in {
+             allow-transfer { any; };
+             type master;
+             file "30.20.10.in-addr.arpa";
+          };

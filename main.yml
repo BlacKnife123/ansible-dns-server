@@ -1,0 +1,186 @@
+---
+- hosts: all
+  remote_user: root
+  become: yes
+  vars_files:
+    - vars/vars.yml
+  tasks:
+    - name: IP Config
+      community.general.nmcli:
+        conn_name: '{{interfaces[1]}}'
+        ifname: '{{interfaces[1]}}'
+        type: '{{type}}'
+        ip4: '{{ipv4}}'
+        gw4: '{{subnet}}254'
+        dns4: '{{subnet}}254'
+        state: present
+      when: ansible_os_family == "RedHat" or ansible_distribution == "openSUSE Leap"
+
+    - name: internal
+      community.general.nmcli:
+        conn_name: '{{interfaces[1]}}'
+        ifname: '{{interfaces[1]}}'
+        zone: '{{zone[0]}}'
+        state: present
+      when: ansible_distribution == "openSUSE Leap"
+
+    - name: external
+      community.general.nmcli:
+        conn_name: '{{interfaces[0]}}'
+        ifname: '{{interfaces[0]}}'
+        type: '{{type}}'
+        zone: '{{zone[1]}}'
+        state: present
+      when: ansible_distribution == "openSUSE Leap"
+    
+    - name: Ubuntu IP config
+      template:
+        src: '{{template[0]}}'
+        dest: '{{netplan[0]}}'
+      when: ansible_os_family == "Debian"
+    
+    - name: apply netplan
+      command: netplan apply
+      when: ansible_os_family == "Debian"
+
+    - name: Install dns for OpenSuse
+      community.general.zypper:
+        name: '{{services[0]}}'
+        state: latest
+      when: ansible_distribution == "openSUSE Leap"
+
+    - name: Install dns for RedHat Family
+      ansible.builtin.yum:
+        name: '{{item}}'
+        state: latest
+      loop:
+        - '{{services[0]}}'
+        - '{{services[2]}}'
+      when: ansible_os_family == "RedHat"
+
+    - name: Install dns for Debian Family
+      ansible.builtin.apt:
+        name: '{{item}}'
+        state: latest
+      loop:
+        - '{{services[3]}}'
+        - '{{services[4]}}'
+        - '{{services[5]}}'
+      when: ansible_os_family == "Debian"
+
+    - name: Start DNS Server
+      ansible.builtin.service:
+        state: started
+        name: '{{services[1]}}'
+
+    - name: enable dns
+      ansible.builtin.service:
+        enabled: yes
+        name: '{{services[1]}}'
+
+    - name: DNS config for OpenSuse
+      template:
+        src: '{{template[1]}}'
+        dest: '{{dns_paths[0]}}'
+      when: ansible_distribution == "openSUSE Leap"
+
+    - name: DNS config for RedHat Family
+      template:
+        src: '{{template[2]}}'
+        dest: '{{dns_paths[1]}}'
+      when: ansible_os_family == "RedHat"
+
+    - name: DNS config file for OpenSuse
+      template:
+        src: '{{template[3]}}'
+        dest: '{{dns_paths[1]}}'
+      when: ansible_distribution == "openSUSE Leap"
+
+    - name: DNS config file for Debian Family
+      template:
+        src: '{{template[4]}}'
+        dest: '{{dns_paths[2]}}'
+      when: ansible_os_family == "Debian"
+
+    - name: Add dns forwarders for Debian Family
+      template:
+        src: '{{template[5]}}'
+        dest: '{{dns_paths[3]}}'
+      when: ansible_os_family == "Debian"
+    
+    - name: Open port for OpenSuse
+      command: firewall-cmd --permanent --zone=internal --add-port=53/udp
+      when: ansible_distribution == "openSUSE Leap"
+
+    - name : Add dns to firewall for RedHat Family
+      lineinfile:
+        dest: '{{fierwall_path[0]}}'
+        line: '<service name="dns"/>'
+        insertbefore: '<forward/>'
+      when: ansible_os_family == "RedHat"
+
+    - name: reload firewall
+      command: firewall-cmd --reload
+      when: ansible_os_family == "RedHat" or ansible_distribution == "openSUSE Leap"
+
+    - name: Create DNS Zone file for OpenSuse
+      command: touch '{{item}}'
+      loop:
+        - '{{zone_paths[0]}}'
+        - '{{zone_paths[1]}}'
+      when: ansible_distribution == "openSUSE Leap"
+
+    - name: Create DNS zone file for RedHat Family
+      command: touch '{{item}}'
+      loop:
+        - '{{zone_paths[2]}}'
+        - '{{zone_paths[3]}}'
+      when: ansible_os_family == "RedHat"
+
+    - name: Create DNS Zone file for Debian Family
+      command: touch '{{item}}'
+      loop:
+        - '{{zone_paths[4]}}'
+        - '{{zone_paths[5]}}'
+      when: ansible_os_family == "Debian"
+
+    - name: set up primary zone for OpenSuse
+      template:
+        src: '{{template[6]}}'
+        dest: '{{zone_paths[0]}}'
+      when: ansible_distribution == "openSUSE Leap"
+
+    - name: set up primary zone for RedHat Family
+      template:
+        src: '{{template[6]}}'
+        dest: '{{zone_paths[2]}}'
+      when: ansible_os_family == "RedHat"
+
+    - name: set up primary zone for Debian Family
+      template:
+        src: '{{template[6]}}'
+        dest: '{{zone_paths[4]}}'
+      when: ansible_os_family == "Debian"
+
+    - name: set up primary PTR zone for OpenSuse
+      template:
+        src: '{{template[7]}}'
+        dest: '{{zone_paths[1]}}'
+      when: ansible_distribution == "openSUSE Leap"
+
+    - name: set up primary PTR zone for RedHat Family
+      template:
+        src: '{{template[7]}}'
+        dest: '{{zone_paths[3]}}'
+      when: ansible_os_family == "RedHat"
+
+    - name: set up primary PTR zone for Debian Family
+      template:
+        src: '{{template[7]}}'
+        dest: '{{zone_paths[5]}}'
+      when: ansible_os_family == "Debian"
+
+    - name: Restart DNS
+      ansible.builtin.service:
+        state: restarted
+        name: named
